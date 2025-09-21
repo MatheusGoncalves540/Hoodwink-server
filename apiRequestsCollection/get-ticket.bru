@@ -1,11 +1,11 @@
 meta {
-  name: create-room
+  name: get-ticket
   type: http
   seq: 5
 }
 
 post {
-  url: {{urlGame}}/newRoom
+  url: {{urlGame}}/getTicket/c6b99e04-0652-4107-bf76-073fe3e6a824
   body: json
   auth: none
 }
@@ -16,7 +16,6 @@ headers {
 
 body:json {
   {
-    "roomName": "Sala nome Teste212",
-    "password": "passwo"
+    "playerId": "123"
   }
 }
