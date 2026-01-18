@@ -2,7 +2,7 @@ package protocols
 
 import (
 	"context"
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/MatheusGoncalves540/Hoodwink-gameServer/game/rules"
@@ -11,37 +11,43 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func AssassinProtocol(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, playerPlay *structs.PlayerPlay, assassinPayload structs.AssassinPayload) error {
-	cardRules, err := roomData.GetCardRules(registryRules, string(playerPlay.Type))
-	if err != nil {
-		return fmt.Errorf("%s", "Erro ao obter regras da carta Assassin: "+err.Error())
-	}
+func ContestProtocol(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, playerPlay *structs.PlayerPlay) error {
 	sourcePlayer, err := roomData.GetPlayer(playerPlay.PlayerId)
 	if err != nil {
 		return err
 	}
 
+	// extrai o player do payload do evento atual (quem jogou a carta e está sendo contestado)
+	ContestedPlayerId := roomData.GameEvent.PlayerID
+
+	// extrai a carta do Evento atual (carta que está sendo contestada)
+	ContestedCard := strings.TrimPrefix(string(roomData.GameEvent.Type), "CARD_PLAYED_")
+
 	// calcula o tempo de expiração do evento
-	timeoutDuration, err := roomData.GetTimeoutDuration(registryRules, "WaitingAction")
+	timeoutDuration, err := roomData.GetTimeoutDuration(registryRules, "DisplayMessage")
 	if err != nil {
 		return err
 	}
 	expiresAt := time.Now().Add(timeoutDuration * time.Second).UTC()
 
-	// marca a remoção de coins
-	sourcePlayer.RemoveCoins(*cardRules.Price)
-
 	roomData.GameEvent = &structs.GameEvent{
 		PlayerID:  sourcePlayer.Id,
-		Type:      structs.EventCardPlayedAssassin,
+		Type:      structs.EventContest,
 		ExpiresAt: expiresAt,
-		Payload:   assassinPayload,
+		Payload: structs.ContestPayload{
+			ContestedPlayer: ContestedPlayerId,
+			ContestedCard:   ContestedCard,
+		},
 	}
+
 	roomData.PendingEffects = append(roomData.PendingEffects,
 		structs.Effect{
-			Cause:        structs.EffectAssassin,
+			Cause:        structs.EffectContest,
 			SourcePlayer: sourcePlayer.Id,
-			Payload:      assassinPayload,
+			Payload: structs.ContestPayload{
+				ContestedPlayer: ContestedPlayerId,
+				ContestedCard:   ContestedCard,
+			},
 		},
 	)
 
