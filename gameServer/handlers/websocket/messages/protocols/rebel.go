@@ -8,11 +8,15 @@ import (
 	"github.com/MatheusGoncalves540/Hoodwink-gameServer/game/rules"
 	"github.com/MatheusGoncalves540/Hoodwink-gameServer/game/structs"
 	"github.com/MatheusGoncalves540/Hoodwink-gameServer/game/structs/rooms"
-	"github.com/MatheusGoncalves540/Hoodwink-gameServer/utils"
 	"github.com/redis/go-redis/v9"
 )
 
-func AssassinProtocol(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, playerPlay *structs.PlayerPlay, assassinPayload structs.AssassinPayload) error {
+func RebelProtocol(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, playerPlay *structs.PlayerPlay) error {
+	cardRules, err := roomData.GetCardRules(registryRules, string(playerPlay.Type))
+	if err != nil {
+		return fmt.Errorf("%s", "Erro ao obter regras da carta Assassin: "+err.Error())
+	}
+
 	sourcePlayer, err := roomData.GetPlayer(playerPlay.PlayerId)
 	if err != nil {
 		return err
@@ -33,12 +37,18 @@ func AssassinProtocol(ctx context.Context, rdb *redis.Client, registryRules *rul
 
 	sourcePlayer.RemoveCoins(cardPrice)
 
-	roomData.GameEvent = structs.NewGameEvent(sourcePlayer.Id, structs.EventCardPlayedAssassin, expiresAt, assassinPayload)
-	if err := roomData.AppendPendingEffect(structs.NewEffect(structs.EffectAssassin, sourcePlayer.Id, assassinPayload)); err != nil {
-		utils.LogError(err)
-		return fmt.Errorf("falha ao registrar efeito assassin: %w", err)
+	// prepara payload
+	rebelPayload := structs.NewRebelPayload(*cardRules.FixedValue)
+
+	// registra o evento de jogo
+	roomData.GameEvent = structs.NewGameEvent(playerPlay.PlayerId, structs.EventCardPlayedRebel, expiresAt, rebelPayload)
+
+	// registra o efeito pendente
+	if err := roomData.AppendPendingEffect(structs.NewEffect(structs.EffectRebel, playerPlay.PlayerId, rebelPayload)); err != nil {
+		return fmt.Errorf("falha ao registrar efeito rebel: %w", err)
 	}
 
+	// registra o timeout no redis
 	rdb.ZAdd(ctx, "rooms:timeouts", redis.Z{
 		Score:  float64(expiresAt.UnixMilli()),
 		Member: roomData.ID,
