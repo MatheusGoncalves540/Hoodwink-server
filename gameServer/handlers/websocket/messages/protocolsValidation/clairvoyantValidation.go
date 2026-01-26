@@ -7,16 +7,16 @@ import (
 	"github.com/MatheusGoncalves540/Hoodwink-gameServer/utils"
 )
 
-func ValidatePoliticalProtocol(roomData *rooms.Room, registryRules *rules.Registry, playerPlay *structs.PlayerPlay) bool {
+func ValidateClairvoyantProtocol(roomData *rooms.Room, registryRules *rules.Registry, playerPlay *structs.PlayerPlay, clairvoyantPayload structs.ClairvoyantPayload) bool {
 	sourcePlayer, err := roomData.GetPlayer(playerPlay.PlayerId)
 	if err != nil {
 		utils.LogError(err)
 		return false
 	}
 
-	// Political só pode ser usado durante o evento de espera de primeira ação
+	// Rebel só pode ser usado durante o evento de espera de primeira ação
 	if roomData.GameEvent.Type != structs.EventWaitingFirstAction {
-		utils.LogInvldPlyrReq("Political só pode ser usado durante o evento de espera de primeira ação", playerPlay.PlayerId)
+		utils.LogInvldPlyrReq("Rebel só pode ser usado durante o evento de espera de primeira ação", playerPlay.PlayerId)
 		return false
 	}
 
