@@ -11,14 +11,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func GravediggerEffect(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, effect structs.Effect) {
-	gravediggerPayload, ok := effect.Payload.(structs.GravediggerPayload)
+func CrupierEffect(ctx context.Context, rdb *redis.Client, registryRules *rules.Registry, roomData *rooms.Room, effect structs.Effect) {
+	crupierPayload, ok := effect.Payload.(structs.CrupierPayload)
 	if !ok {
-		utils.LogError("payload inválido para GravediggerPayload")
+		utils.LogError("payload inválido para CrupierPayload")
 		return
 	}
 
-	changeCardPayload := structs.NewChangeCardPayload(string(effect.Cause), gravediggerPayload.TargetPlayer, gravediggerPayload.TargetCardIndex, nil)
+	changeCardPayload := structs.NewChangeCardPayload(string(effect.Cause), crupierPayload.TargetPlayer, crupierPayload.TargetCardIndex, crupierPayload.UseOnTwoCards)
 
 	changeCardEffect := structs.Effect{
 		Cause:        structs.EffectChangedCard,
